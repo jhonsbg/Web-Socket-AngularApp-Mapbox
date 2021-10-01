@@ -29,16 +29,23 @@ export class MapaComponent implements OnInit {
 
   ngOnInit() {
     this.http.get<RespMarcadores>('http://localhost:5000/mapa').subscribe(lugares => {
-      // console.log(lugares);
+      console.log(lugares);
       this.lugares = lugares;
       this.crearMapa();
-      this.crearMarcador();
+      // this.crearMarcador();
     })
-
+    
     this.escucharSockets();
   }
 
   escucharSockets(){
+
+    // ID de Usuario
+    this.wsService.listen('id-usuario').subscribe((idUsuario: string | any) => {
+      console.log(idUsuario);
+      this.crearMarcador(idUsuario);
+    }) 
+
     // Marcador nuevo
     this.wsService.listen('marcador-nuevo').subscribe((marcador: Lugar | any) => {
       console.log(marcador);
@@ -48,10 +55,9 @@ export class MapaComponent implements OnInit {
     // marcador-mover
     this.wsService.listen( 'marcador-mover' )
       .subscribe( (marcador:Lugar | any) => {
-
+        console.log(marcador);
         this.markersMapbox[ marcador.id ]
-          .setLngLat([ marcador.lng, marcador.lat ])
-
+          .setLngLat([ marcador.lng, marcador.lat ]);
     });
 
     // Marcador borrar
@@ -66,13 +72,13 @@ export class MapaComponent implements OnInit {
     this.mapa = new mapboxgl.Map({
       container: 'mapa',
       style: 'mapbox://styles/mapbox/streets-v11',
-      center: [4.687273776841303, -74.06165854470065],
+      center: [-74.06165854470065, 4.687273776841303],
       zoom: 15.8
     });
 
     for(const [id, marcador] of Object.entries(this.lugares)){
       this.agregarMarcador(marcador);
-    }
+    };
 
     // Add geolocate control to the map.
     this.mapa.addControl(
@@ -88,7 +94,7 @@ export class MapaComponent implements OnInit {
     );
   }
 
-  agregarMarcador(marcador: Lugar){
+  agregarMarcador(marcador: Lugar, idUsuario?: string){
 
     const h2 = document.createElement('h2');
     h2.innerText = marcador.nombre;
@@ -109,31 +115,36 @@ export class MapaComponent implements OnInit {
     }).setDOMContent(div);
 
     const marker = new mapboxgl.Marker({
-      draggable: true,
+      draggable: false,
       color: marcador.color
     })
-    // .setLngLat([marcador.lng, marcador.lat]) 
-    .setLngLat(new mapboxgl.LngLat(marcador.lng, marcador.lat)) 
+    .setLngLat([marcador.lng, marcador.lat]) 
+    // .setLngLat(new mapboxgl.LngLat(marcador.lng, marcador.lat)) 
     .setPopup(customPopup)
     .addTo(this.mapa);
 
     navigator.geolocation.watchPosition( (position) => {
-      var latitude = position.coords.latitude; 
-      var longitude = position.coords.longitude;
-      var lngLat = new mapboxgl.LngLat(longitude, latitude);
+      if (marcador.id == idUsuario){
+        var latitude = position.coords.latitude; 
+        var longitude = position.coords.longitude;
+  
+        // console.log(`Longitud ${lngLat.lng} y Latitud ${lngLat.lat}`);
+  
+        const nuevoMarcador = {
+          id: marcador.id,
+          lng: longitude,
+          lat: latitude,
+          nombre: marcador.nombre,
+          color: marcador.color
+        } 
+        
+        this.markersMapbox[ marcador.id ].setLngLat([longitude, latitude]);
 
-      console.log(`Longitud ${lngLat.lng} y Latitud ${lngLat.lat}`);
-
-      const nuevoMarcador = {
-        id: marcador.id,
-        lng: longitude,
-        lat: latitude,
-        nombre: marcador.nombre,
-        color: marcador.color
-      } 
-
-      this.wsService.emit( 'marcador-mover', nuevoMarcador );
-      this.mapa.setCenter([longitude, latitude]);
+        console.log(nuevoMarcador);
+  
+        this.wsService.emit( 'marcador-mover', nuevoMarcador );
+        this.mapa.setCenter([longitude, latitude]);
+      }
     },
     (err) =>{
       console.log(err);
@@ -165,7 +176,7 @@ export class MapaComponent implements OnInit {
     this.markersMapbox[marcador.id] = marker;
   }
 
-  crearMarcador(){
+  crearMarcador(idUsuario: string){
     // const customMarker: Lugar = {
     //   id: new Date().toISOString(),
     //   lng: -57,
@@ -179,6 +190,12 @@ export class MapaComponent implements OnInit {
     // // Emitir marcador nuevo
     // this.wsService.emit('marcador-nuevo', customMarker);
 
+
+
+
+
+
+
     if(!navigator.geolocation){
       console.log('Geolocation is not supported by your browser');
     }else{
@@ -187,7 +204,7 @@ export class MapaComponent implements OnInit {
         var longitude = position.coords.longitude;
 
         const customMarker: Lugar = {
-          id: new Date().toISOString(),
+          id: idUsuario,
           lng: longitude,
           lat: latitude,
           nombre: 'Sin nombre',
@@ -196,7 +213,7 @@ export class MapaComponent implements OnInit {
 
         this.mapa.setCenter([longitude, latitude]);
 
-        this.agregarMarcador(customMarker);
+        this.agregarMarcador(customMarker, idUsuario);
 
         // // Emitir marcador nuevo
         this.wsService.emit('marcador-nuevo', customMarker);
