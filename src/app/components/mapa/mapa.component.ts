@@ -28,7 +28,8 @@ export class MapaComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.http.get<RespMarcadores>('http://localhost:5000/mapa').subscribe(lugares => {
+    this.http.get<RespMarcadores>('https://web-socket-server-mapbox.herokuapp.com/mapa').subscribe(lugares => {
+    // this.http.get<RespMarcadores>('http://localhost:5000/mapa').subscribe(lugares => {
       console.log(lugares);
       this.lugares = lugares;
       this.crearMapa();
@@ -143,7 +144,13 @@ export class MapaComponent implements OnInit {
         console.log(nuevoMarcador);
   
         this.wsService.emit( 'marcador-mover', nuevoMarcador );
-        this.mapa.setCenter([longitude, latitude]);
+        
+        var centrar = document.getElementById('centrarMapa');
+        var status = centrar?.getAttribute('status');
+        if(status == '1'){
+          this.mapa.setCenter([longitude, latitude]);
+          this.mapa.setZoom(15.8);
+        }
       }
     },
     (err) =>{
@@ -212,12 +219,26 @@ export class MapaComponent implements OnInit {
         }
 
         this.mapa.setCenter([longitude, latitude]);
+        this.mapa.setZoom(15.8);
 
         this.agregarMarcador(customMarker, idUsuario);
 
         // // Emitir marcador nuevo
         this.wsService.emit('marcador-nuevo', customMarker);
       })
+    }
+  }
+
+  centrarMapa(){
+    var centrar = document.getElementById('centrarMapa');
+    var status = centrar?.getAttribute('status');
+
+    if(status == '0'){
+      centrar?.setAttribute('status','1');
+      document.getElementById('imgCentrarMapa')!.style.filter = 'grayscale(0%)';
+    }else{
+      centrar?.setAttribute('status','0');
+      document.getElementById('imgCentrarMapa')!.style.filter = 'grayscale(80%)';
     }
   }
 }

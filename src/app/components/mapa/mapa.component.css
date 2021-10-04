@@ -1,9 +1,31 @@
 button {
     position: fixed;
-    top: 100px;
+    padding: 0;
+    top: 50px;
     right: 10px;
-    padding: 5px;
     z-index: 999;
+    height: 30px;
+    width: 30px;
+    background-color: white;
+    border: 0px;
+    border-radius: 5px;
+    outline: 3px solid #F4F4F4;
+}
+
+button figure {
+    margin: 0;
+    height: 30px;
+    width: 30px;
+}
+
+button figure img {
+    height: 30px;
+    width: 30px;
+    filter: grayscale(80%);
+}
+
+a {
+    position: fixed;
 }
 
 #mapa {
